@@ -1,4 +1,5 @@
 from model import ForkEncoderDecoder
+from losses import nonzero_MAE
 from generator import ProngGenerator
 import pickle
 import numpy as np
@@ -45,7 +46,7 @@ m.compile(
     optimizer='adam',
     loss=['binary_crossentropy','mean_squared_error', 'binary_crossentropy'],
     loss_weights=[1.0,1.0,1.0],
-    metrics=['mean_absolute_error'],
+    metrics=[nonzero_MAE,'mean_absolute_error',nonzero_MAE],
 )
 
 print('Fitting Model')
