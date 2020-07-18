@@ -4,6 +4,9 @@ from generator import ProngGenerator
 import pickle
 import numpy as np
 import os
+import tensorflow as tf
+
+print(tf.__version__)
 
 map_files = '../data/ml-25m/processed/maps'
 data_f = '../data/ml-25m/processed/users'
