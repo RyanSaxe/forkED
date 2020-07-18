@@ -48,8 +48,8 @@ m = ForkEncoderDecoder(
 m.compile(
     optimizer='adam',
     loss=['binary_crossentropy','mean_squared_error', 'binary_crossentropy'],
-    loss_weights=[1.0,1.0,1.0],
-    metrics=[nonzero_MAE,'mean_absolute_error',nonzero_MAE],
+    loss_weights=[0.1,1.0,0.1],
+    metrics=[nonzero_MAE],
 )
 
 print('Fitting Model')
