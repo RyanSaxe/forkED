@@ -14,8 +14,8 @@ mmap = pickle.load(open(map_files + "/movie.pkl",'rb'))
 n_users = len(umap)
 n_movs = len(mmap)
 
-train_users = np.random.choice(list(range(n_users)), int(n_users * 0.2), replace=False)
-val_users = list(set(list(range(n_users))) - set(train_users))[:100]
+train_users = np.random.choice(list(range(n_users)), int(n_users * 0.8), replace=False)
+val_users = list(set(list(range(n_users))) - set(train_users))
 
 print('Initializing Generators')
 training_generator = ProngGenerator(
@@ -53,6 +53,4 @@ m.fit_generator(
     epochs=5,
     generator=training_generator,
     validation_data=validation_generator,
-    use_multiprocessing=True,
-    workers=6
 )
