@@ -60,7 +60,6 @@ class ProngGenerator(keras.utils.Sequence):
         for i, ID in enumerate(list_IDs_temp):
             #get ids and ratings
             idxs,vals = np.load(os.path.join(self.data_dir,'users', str(ID) + '.npy'))
-            vals = vals/50.0
             X[i,idxs] = vals
             #mask a rating for secondary target
             mask_and_target = np.random.choice(len(idxs))
@@ -68,6 +67,15 @@ class ProngGenerator(keras.utils.Sequence):
             X_one_hot[i,idxs[mask_and_target]] = 1
             tag_idxs,tag_vals = np.load(os.path.join(self.data_dir, 'movies',str(idxs[mask_and_target]) + '.npy'))
             tag_idxs = tag_idxs.astype(int)
+
+            #catch data error
+            bad_tag_mask = (tag_idxs >= self.sec_dim) | (tag_idxs < 0)
+            tag_idxs = tag_idxs[~bad_tag_mask]
+            tag_vals = tag_vals[~bad_tag_mask]
+            #print(tag_idxs,idxs[mask_and_target])
+            #renormalize probablities such that sum is one if we had to throw out a tag
+            tag_vals = tag_vals/tag_vals.sum()
+            
             X_proba[i, tag_idxs] = tag_vals
             # store secondary target
             y[i] = vals[mask_and_target]
