@@ -1,6 +1,7 @@
 import tensorflow as tf
 import sys
 from tqdm import tqdm
+import numpy as np
 
 class Trainer:
     def __init__(
@@ -12,17 +13,18 @@ class Trainer:
         self.generator = generator
         self.model = model
         self.epoch_n = 1
+        self.clip = clip
     
     def _step(self, batch):
         features, target = batch
         with tf.GradientTape() as tape:
-            output = model(features)
-            loss = model.loss(output, target)
+            output = self.model(features)
+            loss = self.model.loss(output, target)
             #put regularization here if necessary
-        grads = tape.gradient(loss, model.trainable_variables)
+        grads = tape.gradient(loss, self.model.trainable_variables)
         if self.clip:
             grads, _ = tf.clip_by_global_norm(grads, self.clip)
-        model.optimizer.apply_gradients(zip(grads, model.trainable_variables))
+        self.model.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
         return loss
 
     def train(self, n_epochs, verbose=True):

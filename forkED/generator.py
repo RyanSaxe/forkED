@@ -110,32 +110,37 @@ class Augmentation:
         batch_files = self.files[
             self.batch_size * self.cur_batch : self.batch_size * (1 + self.cur_batch)
         ]
-        batch = []
+        batch_in = []
+        batch_target = []
         if self.verbose:
             progress_bar = tqdm(total=len(batch_files), desc="Augmenting Batch", unit=" Files")
         if multi_threaded:
             with ThreadPoolExecutor(max_workers=None) as executor:
                 for result in executor.map(self, batch_files):
-                    batch.append(result)
+                    batch_in.append(result[0])
+                    batch_target.append(result[1])
                     if self.verbose:
                         progress_bar.update(1)
         else:
             for input_file in batch_files:
                 result = self._augment_file(input_file)
-                batch.append(result)
+                batch_in.append(result[0])
+                batch_target.append(result[1])
                 if self.verbose:
                     progress_bar.update(1)
         #each element in the batch list is now of the form
         #   ([input_1, input_2, . . ., input_N], [output_1, output_2, . . ., output_M])
         #so we need to stack all of these into tensors
         self.cur_batch += 1
-        return tf.convert_to_tensor(np.vstack(batch),tf.float32)
+        in_tensor = tf.convert_to_tensor(np.vstack(batch_in),tf.float32)
+        target_tensor = tf.convert_to_tensor(np.vstack(batch_target),tf.float32)
+        return in_tensor, target_tensor
 
     def _augment_file(self, input_file):
         output = np.zeros(self.dim)
         idxs,vals = np.load(input_file)
         np.put(output,idxs,vals)
-        return self.apply_augmentation(output)
+        return self.apply_augmentation(output), output
     
     def apply_augmentation(self, array):
         includes = np.where(array != 0)[0]

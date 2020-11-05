@@ -14,7 +14,7 @@ class Dense(tf.Module):
         self.activation = activation
 
         self.w = tf.Variable(
-            initializer(in_features, out_features),
+            initializer([in_features, out_features]),
             dtype = tf.float32,
             name = 'w',
         )
