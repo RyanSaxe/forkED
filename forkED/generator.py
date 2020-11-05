@@ -39,7 +39,7 @@ class Augmentation:
                 batch_size = 256,
                 dim = 1000,
             )
-        >>> while generator.has_next_batch():
+        >>> while generator.has_next_batch:
                 batch = generator.load_batch()
                 # Do something with the batch
     """
@@ -51,6 +51,7 @@ class Augmentation:
         repeat = 0,
         noise = (0.1, 0.1),
         proba_loc = None,
+        verbose = True,
     ):
         self.read_loc = read_loc
         self.batch_size = batch_size
@@ -62,6 +63,7 @@ class Augmentation:
             self.neg_sampler = None
         else:
             self.neg_sampler = np.load(proba_loc)
+        self.verbose = verbose
         all_files = [os.path.join(self.read_loc,x) for x in os.listdir(self.read_loc) if x.endswith('.npy')]
         self.files = all_files[:]
         for repetition in range(repeat):
@@ -100,8 +102,6 @@ class Augmentation:
 
     def load_batch(self, multi_threaded=True):
         """
-        concept for multithreaded taken from: https://github.com/mdbloice/Augmentor/
-
         Load a batch of data and apply augmentation
 
         :param multi_threaded: Boolean to determine whether to use multithreaded process
@@ -111,17 +111,19 @@ class Augmentation:
             self.batch_size * self.cur_batch : self.batch_size * (1 + self.cur_batch)
         ]
         batch = []
+        if self.verbose:
+            progress_bar = tqdm(total=len(batch_files), desc="Augmenting Batch", unit=" Files")
         if multi_threaded:
-            with tqdm(total=len(batch_files), desc="Augmenting Data", unit="Samples") as progress_bar:
-                with ThreadPoolExecutor(max_workers=None) as executor:
-                    for result in executor.map(self, batch_files):
-                        batch.append(result)
+            with ThreadPoolExecutor(max_workers=None) as executor:
+                for result in executor.map(self, batch_files):
+                    batch.append(result)
+                    if self.verbose:
                         progress_bar.update(1)
         else:
-            with tqdm(total=len(batch_files), desc="Augmenting Data", unit="Samples") as progress_bar:
-                for input_file in batch_files:
-                    result = self._augment_file(input_file)
-                    batch.append(result)
+            for input_file in batch_files:
+                result = self._augment_file(input_file)
+                batch.append(result)
+                if self.verbose:
                     progress_bar.update(1)
         self.cur_batch += 1
         return tf.convert_to_tensor(np.vstack(batch),tf.float32)
