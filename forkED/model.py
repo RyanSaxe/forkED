@@ -2,59 +2,82 @@ from tensorflow.keras.layers import Dense, Dropout
 from tensorflow.keras.models import Model
 import tensorflow as tf
 
-class MLP_3(Model):
+class MLPBottleneck(tf.Module):
     def __init__(
         self,
-        dims,
-        out_dim,
-        hidden_act='relu',
-        out_act='sigmoid',
-        noise=None,
-        bottleneck_flag=True,
-        reg = [None, None, None],
-        name=None,
+        in_dim,
+        first_hidden_dim,
+        emb_dim,
+        n_h_layers,
+        hidden_act=tf.nn.relu,
+        bottleneck_act=tf.nn.relu,
+        dropout=0.0,
+        name=None
     ):
         super().__init__(name=name)
-        if bottleneck_flag:
-            assert dims[-1] >= out_dim, (
-                f'The output dim must be smaller than {dims[-1]}'
-            )
-        else:
-            assert dims[-1] <= out_dim, (
-                f'The output dim must be larger than {dims[-1]}'
-            )
+        dims = [in_dim] + [first_hidden_dim // (2 ** i) for i in range(n_h_layers - 1)]
+        assert dims[-1] > emb_dim, (
+            "the embedding dimension must be smaller than the dimension of the last hidden layer"
+        )
+        if dropout isinstance(float):
+            dropout = [dropout] * n_h_layers
+        assert len(dropout) == n_h_layers, "the length of `dropout` must be the same as `n_h_layers`"
+        self.layers = []
+        for i, dim in enumerate(dims[:-1]):
+            out_dim = dims[i + 1]
+            layer = Dense(in_dim, out_dim, activation=hidden_act)
+            self.layers.append(layer)
+            if dropout[i] > 0.0 and dropout[i] < 1.0:
+                droplayer = Dropout(dropout[i])
+                self.layers.append(droplayer)
 
-        self.noise = None if noise is None else Dropout(noise)
-        self.drop_1 = None if reg[0] is None else Dropout(reg[0])
-        self.drop_2 = None if reg[1] is None else Dropout(reg[1])
-        self.drop_3 = None if reg[2] is None else Dropout(reg[2])
+        self.bottleneck = Dense(dims[-1], emb_dim, activation=bottleneck_act)
 
-        self.layer_1 = Dense(dims[0], activation=hidden_act)
-        self.layer_2 = Dense(dims[1], activation=hidden_act)
-        self.layer_3 = Dense(dims[2], activation=hidden_act)
-        self.out = Dense(out_dim, activation=out_act)
+        def __call__(self, x, training=None):
+            for layer in self.layers:
+                x = layer(x, training=training)
+            return self.bottleneck(x)
 
-    def call(self, x, skip_noise=False, training=None):
-        #may want to skip input noise for parts of the fork
-        #during training, so need additional flag for no dropout
-        if (self.noise is not None) and (not skip_noise):
-            x = self.noise(x)
-        x = self.layer_1(x)
-        if self.drop_1 is not None:
-            x = self.drop_1(x)
-        x = self.layer_2(x)
-        if self.drop_2 is not None:
-            x = self.drop_2(x)
-        x = self.layer_3(x)
-        if self.drop_3 is not None:
-            x = self.drop_3(x)
-        return self.out(x)
+class MLPReverseBottleneck(tf.Module):
+    def __init__(
+        self,
+        emb_dim,
+        out_dim,
+        n_h_layers,
+        hidden_act=tf.nn.relu,
+        out_act=tf.nn.relu,
+        dropout=0.0,
+        name=None
+    ):
+        super().__init__(name=name)
+        dims = [in_dim // (2 ** i) for i in range(n_h_layers)]
+        assert dims[-2] < dims[-1], (
+            "the out dimension must be larger than the dimension of the last hidden layer"
+        )
+        if dropout isinstance(float):
+            dropout = [dropout] * n_h_layers
+        assert len(dropout) == n_h_layers, "the length of `dropout` must be the same as `n_h_layers`"
+        self.layers = []
+        for i, dim in enumerate(dims[:-1]):
+            out_dim = dims[i + 1]
+            layer = Dense(in_dim, out_dim, activation=hidden_act)
+            self.layers.append(layer)
+            if dropout[i] > 0.0 and dropout[i] < 1.0:
+                droplayer = Dropout(dropout[i])
+                self.layers.append(droplayer)
 
-class ForkEncoderDecoder(Model):
+        self.output = Dense(dims[-1], out_dim, activation=out_act)
+
+        def __call__(self, x):
+            for layer in self.layers:
+                x = layer(x)
+            return self.out(x)
+
+class ForkEncoderDecoder(tf.Module):
     """
-    input_dim:      dimension of the input data
+    in_dim:      dimension of the input data
     first_hidden_dim:   dimension of the first hidden layer of the encoder
-    latent_dim:         dimension of the bottleneck of the encoder
+    emb_dim:         dimension of the bottleneck of the encoder
     fork_task_dim:      dimension of the output of the fork task
     dlow_dim:           dimension of the output of the lower dim construct
                             (high_dim construct always = input_dim)
@@ -64,43 +87,44 @@ class ForkEncoderDecoder(Model):
     """
     def __init__(
         self,
-        input_dim,
+        in_dim,
         first_hidden_dim,
-        latent_dim,
+        emb_dim,
+        n_h_layers,
         fork_task_dim,
         dlow_dim,
-        fork_task_act='sigmoid',
-        dhigh_act='sigmoid',
-        dlow_act='sigmoid',
+        fork_task_act=tf.nn.sigmoid,
+        dhigh_act=tf.nn.sigmoid,
+        dlow_act=tf.nn.sigmoid,
         name=None,
     ):
         super().__init__(name=name)
-        construct_dims = [first_hidden_dim // (2 ** i) for i in range(3)]
-        self.encoder = MLP_3(
-            construct_dims,
-            latent_dim,
-            out_act='relu',
-            reg=[0.4,0.2,0.2],
+        self.encoder = MLPBottleneck(
+            input_dim,
+            first_hidden_dim,
+            emb_dim,
+            n_h_layers,
             name='encoder'
         )
-        self.decoder_high = MLP_3(
-            construct_dims[::-1],
+        self.decoder_high = MLPReverseBottleneck(
+            emb_dim,
             input_dim,
-            bottleneck_flag=False,
+            n_h_layers,
             out_act=dhigh_act,
             name='decoder_high'
         )
-        self.decoder_low = MLP_3(
-            construct_dims[::-1],
+        self.decoder_low = MLPReverseBottleneck(
+            emb_dim,
             dlow_dim,
-            bottleneck_flag=False,
+            n_h_layers,
             out_act=dlow_act,
             name='decoder_low'
         )
-        fork_dims = [latent_dim // (2 ** i) for i in range(1,4)]
-        self.fork = MLP_3(
-            fork_dims,
+        self.fork = MLPBottleneck(
+            emb_dim,
+            emb_dim // 2,
             fork_task_dim,
+            n_h_layers,
             out_act=fork_task_act,
             name='fork'
         )

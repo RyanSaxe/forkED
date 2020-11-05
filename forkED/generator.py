@@ -125,6 +125,9 @@ class Augmentation:
                 batch.append(result)
                 if self.verbose:
                     progress_bar.update(1)
+        #each element in the batch list is now of the form
+        #   ([input_1, input_2, . . ., input_N], [output_1, output_2, . . ., output_M])
+        #so we need to stack all of these into tensors
         self.cur_batch += 1
         return tf.convert_to_tensor(np.vstack(batch),tf.float32)
 
