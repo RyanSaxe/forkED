@@ -148,7 +148,7 @@ class Augmentation:
     def _augment_file(self, input_file):
         output = np.zeros(self.dim)
         idxs,vals = np.load(input_file)
-        np.put(output,idxs,vals)
+        np.put(output,idxs,vals/5.0)
         return self.apply_augmentation(output), output
     
     def apply_augmentation(self, array):

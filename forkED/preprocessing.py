@@ -53,7 +53,7 @@ ratings['movie'] = ratings['movieId'].map(mov_map)
 tags['tag'] = tags['tag'].map(tag_map)
 tags['movie'] = tags['movieId'].map(mov_map)
 #int to reduce space + store idx in same array
-ratings['rating'] = ratings['rating'].apply(lambda x: 0 if x < 4 else 1).astype(int)
+ratings['rating'] = ratings['rating'].astype(int)
 
 #this takes a while: get corresponding movies and ratings for users
 #   probably a way to do this with one groupby?
