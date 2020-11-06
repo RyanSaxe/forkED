@@ -36,11 +36,13 @@ class Trainer:
                     desc = f'Epoch {self.epoch_n}/{end_at}',
                     unit = 'Batch'
                 )
+            losses = []
             while self.generator.has_next_batch:
                 batch = self.generator.load_batch()
                 loss = self._step(batch)
+                losses.append(np.average(loss))
                 if verbose:
-                    progress.set_postfix(loss=np.average(loss))
+                    progress.set_postfix(loss=np.average(losses))
                     progress.update(1)
             if verbose:
                 progress.close()
