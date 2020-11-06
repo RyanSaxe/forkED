@@ -48,4 +48,6 @@ class Trainer:
                 progress.close()
             self.epoch_n += 1
             #reset and reshuffle the data batches
+            #without this the generator can't run more than
+            #one epoch
             self.generator.initialize()
