@@ -42,4 +42,8 @@ class Trainer:
                 if verbose:
                     progress.set_postfix(loss=np.average(loss))
                     progress.update(1)
-            self.next_epoch_n += 1
+            if verbose:
+                progress.close()
+            self.epoch_n += 1
+            #reset and reshuffle the data batches
+            self.generator.initialize()

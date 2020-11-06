@@ -31,6 +31,8 @@ class Augmentation:
                     the ith element corresponds to the probability for negatively sampling
                     the ith item
 
+        file_cap_for_debug: Upper limit on number of files to open for quicker debugging
+
     Usage:
     __________________
 
@@ -52,6 +54,7 @@ class Augmentation:
         noise = (0.1, 0.1),
         proba_loc = None,
         verbose = True,
+        file_cap_for_debug = None,
     ):
         self.read_loc = read_loc
         self.batch_size = batch_size
@@ -65,7 +68,11 @@ class Augmentation:
             self.neg_sampler = np.load(proba_loc)
         self.verbose = verbose
         all_files = [os.path.join(self.read_loc,x) for x in os.listdir(self.read_loc) if x.endswith('.npy')]
-        self.files = all_files[:]
+        np.random.shuffle(all_files)
+        if file_cap_for_debug:
+            self.files = all_files[:file_cap_for_debug]
+        else:
+            self.files = all_files[:]
         for repetition in range(repeat):
             self.files += all_files
         self.final_batch = len(self.files)//self.batch_size + (len(self.files) % self.batch_size > 0)
@@ -134,6 +141,8 @@ class Augmentation:
         self.cur_batch += 1
         in_tensor = tf.convert_to_tensor(np.vstack(batch_in),tf.float32)
         target_tensor = tf.convert_to_tensor(np.vstack(batch_target),tf.float32)
+        if self.verbose:
+            progress_bar.close()
         return in_tensor, target_tensor
 
     def _augment_file(self, input_file):
