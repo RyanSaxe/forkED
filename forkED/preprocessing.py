@@ -3,9 +3,10 @@ import numpy as np
 import pickle
 import os
 import pdb
-
+import sys
 #create directory for processed data
-path = "../data/ml-25m/processed"
+directory = sys.argv[1]
+path = os.path.join(directory,"processed")
 try:
     os.mkdir(path)
     os.mkdir(os.path.join(path,'users'))
@@ -17,13 +18,13 @@ else:
     print ("Successfully created the directory %s " % path)
 
 #open needed movielens dataset
-fname = '../data/ml-25m/movies.csv'
+fname = os.path.join(directory,'movies.csv')
 movies = pd.read_csv(fname)
 
-fname = '../data/ml-25m/ratings.csv'
+fname = os.path.join(directory,'ratings.csv')
 ratings = pd.read_csv(fname)
 
-fname = '../data/ml-25m/tags.csv'
+fname = os.path.join(directory,'tags.csv')
 tags = pd.read_csv(fname)
 
 #create id mapping to ensure ids are in range (0,n)
@@ -41,11 +42,11 @@ us_map = dict(zip(ratings['userId'].unique(),range(n_users)))
 tag_map = dict(zip(tags['tag'].unique(),range(n_tags)))
 
 #store mappings
-with open('../data/ml-25m/processed/maps/movie.pkl','wb') as f:
+with open(os.path.join(directory,'processed/maps/movie.pkl'),'wb') as f:
     pickle.dump(mov_map,f)
-with open('../data/ml-25m/processed/maps/user.pkl','wb') as f:
+with open(os.path.join(directory,'processed/maps/user.pkl'),'wb') as f:
     pickle.dump(us_map,f)
-with open('../data/ml-25m/processed/maps/tag.pkl','wb') as f:
+with open(os.path.join(directory,'processed/maps/tag.pkl'),'wb') as f:
     pickle.dump(tag_map,f)
 #convert data to proper form for storage
 ratings['user'] = ratings['userId'].map(us_map)
@@ -69,11 +70,11 @@ for mid,tids in movie_tag.items():
         values[idx] += 1
     values = values/values.sum()
     arr = np.vstack([tag_ids,values])
-    with open('../data/ml-25m/processed/movies/' + str(mid) + '.npy', 'wb') as f:
+    with open(os.path.join(directory,'processed/movies/' + str(mid) + '.npy'), 'wb') as f:
         np.save(f,arr)
 #store one file per user for individual user-level batch loading
 for uid,mids in user_mov.items():
     values = user_rat.loc[uid]
     arr = np.vstack([mids,values])
-    with open('../data/ml-25m/processed/users/' + str(uid) + '.npy', 'wb') as f:
+    with open(os.path.join(directory,'processed/users/' + str(uid) + '.npy'), 'wb') as f:
         np.save(f,arr)
