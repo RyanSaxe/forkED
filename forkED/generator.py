@@ -70,7 +70,7 @@ class Augmentation:
         else:
             self.neg_sampler = np.load(proba_loc)
         self.verbose = verbose
-        if read_loc isinstance(list):
+        if isinstance(read_loc, list):
             all_files = read_loc
         else:
             all_files = [os.path.join(self.read_loc,x) for x in os.listdir(self.read_loc) if x.endswith('.npy')]
