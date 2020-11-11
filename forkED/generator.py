@@ -142,7 +142,7 @@ class Augmentation:
         #so we need to stack all of these into tensors
         self.cur_batch += 1
         in_tensor = tf.convert_to_tensor(self.batch_in,tf.float32)
-        target_tensor = tf.convert_to_tensor(self.batch_out,tf.float32)
+        target_tensor = tf.convert_to_tensor(self.batch_target,tf.float32)
         if self.verbose:
             progress_bar.close()
         return in_tensor, target_tensor
@@ -158,7 +158,7 @@ class Augmentation:
     def _augment_file(self, input_file, batch_index):
         idxs, vals = self.get_data(input_file)
         self.batch_in[batch_index, idxs] = vals/5.0
-        self.batch_out[batch_index, idxs] = self.apply_augmentation(
+        self.batch_target[batch_index, idxs] = self.apply_augmentation(
             self.batch_in[batch_index]
         )
     
