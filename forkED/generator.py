@@ -70,7 +70,10 @@ class Augmentation:
         else:
             self.neg_sampler = np.load(proba_loc)
         self.verbose = verbose
-        all_files = [os.path.join(self.read_loc,x) for x in os.listdir(self.read_loc) if x.endswith('.npy')]
+        if read_loc isinstance(list):
+            all_files = read_loc
+        else:
+            all_files = [os.path.join(self.read_loc,x) for x in os.listdir(self.read_loc) if x.endswith('.npy')]
         np.random.shuffle(all_files)
         if file_cap_for_debug:
             self.files = all_files[:file_cap_for_debug]
