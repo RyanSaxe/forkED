@@ -7,15 +7,20 @@ import sys
 #create directory for processed data
 directory = sys.argv[1]
 path = os.path.join(directory,"processed")
-try:
-    os.mkdir(path)
-    os.mkdir(os.path.join(path,'users'))
-    os.mkdir(os.path.join(path,'maps'))
-    os.mkdir(os.path.join(path,'movies'))
-except OSError:
-    print ("Creation of the directory %s failed" % path)
-else:
-    print ("Successfully created the directory %s " % path)
+
+def make_folder(path, name=''):
+    try:
+        os.mkdir(os.path.join(path,name))
+    except OSError:
+        print ("Creation of the directory %s failed" % path)
+    else:
+        print ("Successfully created the directory %s " % path)
+
+make_folder(path)
+make_folder(path,'users')
+make_folder(path,'maps')
+make_folder(path,'movies')
+make_folder(path,'sparse_lookups')
 
 #open needed movielens dataset
 fname = os.path.join(directory,'movies.csv')
