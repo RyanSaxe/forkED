@@ -150,13 +150,13 @@ class Augmentation:
     def get_data(self, input_file):
         idxs,vals = self.storage.get(input_file, (None, None))
         if idxs is None:
-            idx,vals = idxs,vals = np.load(input_file)
+            idxs,vals = idxs,vals = np.load(input_file)
         if self.storage_flag:
             self.storage[input_file] = (idxs, vals)
         return idxs, vals
 
     def _augment_file(self, input_file, batch_index):
-        idx, vals = self.get_data(input_file)
+        idxs, vals = self.get_data(input_file)
         self.batch_in[batch_index, idxs] = vals/5.0
         self.batch_out[batch_index, idxs] = self.apply_augmentation(
             self.batch_in[batch_index]
