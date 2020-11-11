@@ -55,6 +55,7 @@ class Augmentation:
         proba_loc = None,
         verbose = True,
         file_cap_for_debug = None,
+        storage_flag = True,
     ):
         self.read_loc = read_loc
         self.batch_size = batch_size
@@ -62,6 +63,8 @@ class Augmentation:
         self.repeat = repeat
         self.noise_by_addition = noise[0]
         self.noise_by_removal = noise[1]
+        self.storage_flag = storage_flag
+        self.storage = dict()
         if proba_loc is None:
             self.neg_sampler = None
         else:
@@ -87,21 +90,21 @@ class Augmentation:
         """
         return self.cur_batch < self.final_batch
 
-    def __call__(self, input_file):
+    def __call__(self, args):
         """
         concept for multithreaded taken from: https://github.com/mdbloice/Augmentor/
 
             Function used by the ThreadPoolExecutor to process the pipeline
             using multiple threads. Do not call directly.
-            This function does nothing except call :func:`_load_batch`, rather
-            than :func:`_load_batch` being called directly in :func:`load_batch`.
+            This function does nothing except call :func:`_augment_file`, rather
+            than :func:`_augment_file` being called directly in :func:`load_batch`.
             This makes it possible for the procedure to be *pickled* and
             therefore suitable for multi-threading.
 
-        :param batch: The file locations for current data batch
-        :return: result from :func: `_load_batch`
+        :args: tuple of arguments for the `_augment_file` function
+        :return: None
         """
-        return self._augment_file(input_file)
+        self._augment_file(*args)
 
     def initialize(self):
         self.cur_batch = 0
@@ -117,39 +120,44 @@ class Augmentation:
         batch_files = self.files[
             self.batch_size * self.cur_batch : self.batch_size * (1 + self.cur_batch)
         ]
-        batch_in = []
-        batch_target = []
+        self.batch_in = np.empty((len(batch_files),self.dim))
+        self.batch_target = np.empty((len(batch_files),self.dim))
         if self.verbose:
             progress_bar = tqdm(total=len(batch_files), desc="Augmenting Batch", unit=" Files")
         if multi_threaded:
             with ThreadPoolExecutor(max_workers=None) as executor:
-                for result in executor.map(self, batch_files):
-                    batch_in.append(result[0])
-                    batch_target.append(result[1])
+                for result in executor.map(self, zip(batch_files, range(len(batch_files)))):
                     if self.verbose:
                         progress_bar.update(1)
         else:
-            for input_file in batch_files:
-                result = self._augment_file(input_file)
-                batch_in.append(result[0])
-                batch_target.append(result[1])
+            for i,input_file in enumerate(batch_files):
+                self._augment_file(input_file, i)
                 if self.verbose:
                     progress_bar.update(1)
         #each element in the batch list is now of the form
         #   ([input_1, input_2, . . ., input_N], [output_1, output_2, . . ., output_M])
         #so we need to stack all of these into tensors
         self.cur_batch += 1
-        in_tensor = tf.convert_to_tensor(np.vstack(batch_in),tf.float32)
-        target_tensor = tf.convert_to_tensor(np.vstack(batch_target),tf.float32)
+        in_tensor = tf.convert_to_tensor(self.batch_in,tf.float32)
+        target_tensor = tf.convert_to_tensor(self.batch_out,tf.float32)
         if self.verbose:
             progress_bar.close()
         return in_tensor, target_tensor
 
-    def _augment_file(self, input_file):
-        output = np.zeros(self.dim)
-        idxs,vals = np.load(input_file)
-        np.put(output,idxs,vals/5.0)
-        return self.apply_augmentation(output), output
+    def get_data(self, input_file):
+        idxs,vals = self.storage.get(input_file, (None, None))
+        if idxs is None:
+            idx,vals = idxs,vals = np.load(input_file)
+        if self.storage_flag:
+            self.storage[input_file] = (idxs, vals)
+        return idxs, vals
+
+    def _augment_file(self, input_file, batch_index):
+        idx, vals = self.get_data(input_file)
+        self.batch_in[batch_index, idxs] = vals/5.0
+        self.batch_out[batch_index, idxs] = self.apply_augmentation(
+            self.batch_in[batch_index]
+        )
     
     def apply_augmentation(self, array):
         includes = np.where(array != 0)[0]
