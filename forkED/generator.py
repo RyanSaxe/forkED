@@ -126,7 +126,7 @@ class Augmentation:
         self.batch_in = np.zeros((len(batch_files),self.dim))
         self.batch_target = np.zeros((len(batch_files),self.dim))
         if self.verbose:
-            progress_bar = tqdm(total=len(batch_files), desc="Augmenting Batch", unit=" Files")
+            progress_bar = tqdm(total=len(batch_files), desc="\tAugmenting Batch", unit=" Files")
         if multi_threaded:
             with ThreadPoolExecutor(max_workers=None) as executor:
                 for result in executor.map(self, zip(batch_files, range(len(batch_files)))):
