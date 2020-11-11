@@ -158,7 +158,7 @@ class Augmentation:
     def _augment_file(self, input_file, batch_index):
         idxs, vals = self.get_data(input_file)
         self.batch_in[batch_index, idxs] = vals/5.0
-        self.batch_target[batch_index, idxs] = self.apply_augmentation(
+        self.batch_target[batch_index] = self.apply_augmentation(
             self.batch_in[batch_index]
         )
     
