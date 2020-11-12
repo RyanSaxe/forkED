@@ -63,10 +63,14 @@ ratings['rating'] = ratings['rating'].astype(int)
 
 #this takes a while: get corresponding movies and ratings for users
 #   probably a way to do this with one groupby?
+print('computing relational information')
 user_mov = ratings.groupby('user')['movie'].apply(list)
 user_rat = ratings.groupby('user')['rating'].apply(list)
 movie_tag = tags.groupby('movie')['tag'].apply(list)
 #process tags for each movie
+user_dict = dict()
+movie_dict = dict()
+print('making movie tag data')
 for mid,tids in movie_tag.items():
     tag_ids = list(set(tids))
     values = np.zeros(len(tag_ids))
@@ -74,12 +78,21 @@ for mid,tids in movie_tag.items():
         idx = tag_ids.index(tag_id)
         values[idx] += 1
     values = values/values.sum()
-    arr = np.vstack([tag_ids,values])
-    with open(os.path.join(directory,'processed/movies/' + str(mid) + '.npy'), 'wb') as f:
-        np.save(f,arr)
+    movie_dict[mid] = (tag_ids, values)
+    #arr = np.vstack([tag_ids,values])
+    # with open(os.path.join(directory,'processed/movies/' + str(mid) + '.npy'), 'wb') as f:
+    #     np.save(f,arr)
 #store one file per user for individual user-level batch loading
+print('making user rating data')
 for uid,mids in user_mov.items():
     values = user_rat.loc[uid]
-    arr = np.vstack([mids,values])
-    with open(os.path.join(directory,'processed/users/' + str(uid) + '.npy'), 'wb') as f:
-        np.save(f,arr)
+    user_dict[uid] = (mids, values)
+    #arr = np.vstack([mids,values])
+    # with open(os.path.join(directory,'processed/users/' + str(uid) + '.npy'), 'wb') as f:
+    #     np.save(f,arr)
+
+with open(os.path.join(directory,'processed/sparse_lookups/movies.pkl'),'wb') as f:
+    pickle.dump(movie_dict,f)
+
+with open(os.path.join(directory,'processed/sparse_lookups/users.pkl'),'wb') as f:
+    pickle.dump(user_dict,f)
