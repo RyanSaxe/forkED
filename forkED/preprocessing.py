@@ -17,9 +17,9 @@ def make_folder(path, name=''):
         print ("Successfully created the directory %s " % path)
 
 make_folder(path)
-make_folder(path,'users')
+# make_folder(path,'users')
 make_folder(path,'maps')
-make_folder(path,'movies')
+# make_folder(path,'movies')
 make_folder(path,'sparse_lookups')
 
 #open needed movielens dataset
@@ -85,7 +85,7 @@ for mid,tids in movie_tag.items():
 #store one file per user for individual user-level batch loading
 print('making user rating data')
 for uid,mids in user_mov.items():
-    values = user_rat.loc[uid]
+    values = np.asarray(user_rat.loc[uid])
     user_dict[uid] = (mids, values)
     #arr = np.vstack([mids,values])
     # with open(os.path.join(directory,'processed/users/' + str(uid) + '.npy'), 'wb') as f:

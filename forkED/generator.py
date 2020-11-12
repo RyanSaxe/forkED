@@ -3,6 +3,7 @@ import tensorflow as tf
 import os
 from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
+import warnings
 
 class Augmentation:
     """
@@ -72,6 +73,9 @@ class Augmentation:
         self.verbose = verbose
         if isinstance(read_loc, list):
             all_files = read_loc
+        elif isinstance(read_loc,dict):
+            all_files = list(read_loc.keys())
+            self.storage = read_loc
         else:
             all_files = [os.path.join(self.read_loc,x) for x in os.listdir(self.read_loc) if x.endswith('.npy')]
         np.random.shuffle(all_files)
@@ -158,6 +162,7 @@ class Augmentation:
     def _augment_file(self, input_file, batch_index):
         idxs, vals = self.get_data(input_file)
         self.batch_in[batch_index, idxs] = vals
+        
         self.batch_target[batch_index] = self.apply_augmentation(
             self.batch_in[batch_index]
         )
