@@ -1,6 +1,6 @@
 
 import tensorflow as tf
-from forkED.layers import InvDropout, Dense
+from layers import InvDropout, Dense
 
 class MLPBottleneck(tf.Module):
     def __init__(

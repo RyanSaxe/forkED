@@ -1,11 +1,8 @@
 import numpy as np
 import tensorflow as tf
-import os
-from concurrent.futures import ThreadPoolExecutor
-from tqdm import tqdm
-import warnings
+from base import BaseGenerator
 
-class Augmentation:
+class AutoEncoderAugmentor(BaseGenerator):
     """
     Base class for data augmentation process for solving any problem on collections.
 
@@ -58,114 +55,22 @@ class Augmentation:
         file_cap_for_debug = None,
         storage_flag = True,
     ):
-        self.read_loc = read_loc
-        self.batch_size = batch_size
-        self.dim = dim
-        self.repeat = repeat
+        super().__init__(
+            read_loc,
+            batch_size,
+            dim,
+            repeat = repeat,
+            verbose = verbose,
+            file_cap_for_debug = file_cap_for_debug,
+            storage_flag = storage_flag
+        )
         self.noise_by_addition = noise[0]
         self.noise_by_removal = noise[1]
-        self.storage_flag = storage_flag
-        self.storage = dict()
+
         if proba_loc is None:
             self.neg_sampler = None
         else:
             self.neg_sampler = np.load(proba_loc)
-        self.verbose = verbose
-        if isinstance(read_loc, list):
-            all_files = read_loc
-        elif isinstance(read_loc,dict):
-            all_files = list(read_loc.keys())
-            self.storage = read_loc
-        else:
-            all_files = [os.path.join(self.read_loc,x) for x in os.listdir(self.read_loc) if x.endswith('.npy')]
-        np.random.shuffle(all_files)
-        if file_cap_for_debug:
-            self.files = all_files[:file_cap_for_debug]
-        else:
-            self.files = all_files[:]
-        for repetition in range(repeat):
-            self.files += all_files
-        self.final_batch = len(self.files)//self.batch_size + (len(self.files) % self.batch_size > 0)
-        self.initialize()
-
-    @property
-    def has_next_batch(self):
-        """
-        Determine if there is another data batch to get
-
-        :return: Boolean
-        """
-        return self.cur_batch < self.final_batch
-
-    def __call__(self, args):
-        """
-        concept for multithreaded taken from: https://github.com/mdbloice/Augmentor/
-
-            Function used by the ThreadPoolExecutor to process the pipeline
-            using multiple threads. Do not call directly.
-            This function does nothing except call :func:`_augment_file`, rather
-            than :func:`_augment_file` being called directly in :func:`load_batch`.
-            This makes it possible for the procedure to be *pickled* and
-            therefore suitable for multi-threading.
-
-        :args: tuple of arguments for the `_augment_file` function
-        :return: None
-        """
-        self._augment_file(*args)
-
-    def initialize(self):
-        self.cur_batch = 0
-        np.random.shuffle(self.files)
-
-    def load_batch(self, multi_threaded=True):
-        """
-        Load a batch of data and apply augmentation
-
-        :param multi_threaded: Boolean to determine whether to use multithreaded process
-        :return: Tensor that is an augmented data batch
-        """
-        batch_files = self.files[
-            self.batch_size * self.cur_batch : self.batch_size * (1 + self.cur_batch)
-        ]
-        self.batch_in = np.zeros((len(batch_files),self.dim))
-        self.batch_target = np.zeros((len(batch_files),self.dim))
-        if self.verbose:
-            progress_bar = tqdm(total=len(batch_files), desc="\tAugmenting Batch", unit=" Files")
-        if multi_threaded:
-            with ThreadPoolExecutor(max_workers=None) as executor:
-                for result in executor.map(self, zip(batch_files, range(len(batch_files)))):
-                    if self.verbose:
-                        progress_bar.update(1)
-        else:
-            for i,input_file in enumerate(batch_files):
-                self._augment_file(input_file, i)
-                if self.verbose:
-                    progress_bar.update(1)
-        #each element in the batch list is now of the form
-        #   ([input_1, input_2, . . ., input_N], [output_1, output_2, . . ., output_M])
-        #so we need to stack all of these into tensors
-        self.cur_batch += 1
-        in_tensor = tf.convert_to_tensor(self.batch_in,tf.float32)
-        target_tensor = tf.convert_to_tensor(self.batch_target,tf.float32)
-        if self.verbose:
-            progress_bar.close()
-        return in_tensor, target_tensor
-
-    def get_data(self, input_file):
-        idxs,vals = self.storage.get(input_file, (None, None))
-        if idxs is None:
-            idxs,vals = np.load(input_file)
-        if self.storage_flag:
-            self.storage[input_file] = (idxs, vals)
-        return idxs, vals
-
-    def _augment_file(self, input_file, batch_index):
-        idxs, vals = self.get_data(input_file)
-        self.batch_in[batch_index, idxs] = vals
-        
-        self.batch_target[batch_index] = self.apply_augmentation(
-            self.batch_in[batch_index]
-        )
     
     def apply_augmentation(self, array):
         includes = np.where(array != 0)[0]
