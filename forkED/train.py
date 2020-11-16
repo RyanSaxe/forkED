@@ -29,6 +29,13 @@ from forkED.model import EncoderDecoder
 from forkED.trainer import Trainer
 import tensorflow as tf
 
+physical_devices = tf.config.list_physical_devices('GPU') 
+print('physical devices:',physical_devices)
+#enable memory growth to avoid attempting to allocate
+#full GPU memory. Grow allocated memory as needed.
+tf.config.experimental.set_memory_growth(physical_devices[0], True)
+
+
 model = EncoderDecoder(
     dim,
     256,

@@ -25,13 +25,6 @@ class BaseGenerator:
 
         repeat: the number of times to repeat the dataset
 
-        noise: a tuple such that noise[0] is the percentage of items to remove and
-                                noise[1] is the percentage of items to add
-
-        proba_loc: the location for a .npy file that is a vector of length `dim` such that
-                    the ith element corresponds to the probability for negatively sampling
-                    the ith item
-
         file_cap_for_debug: Upper limit on number of files to open for quicker debugging
 
     Usage:
@@ -52,8 +45,6 @@ class BaseGenerator:
         batch_size,
         dim,
         repeat = 0,
-        noise = (0.1, 0.1),
-        proba_loc = None,
         verbose = True,
         file_cap_for_debug = None,
         storage_flag = True,
@@ -62,14 +53,8 @@ class BaseGenerator:
         self.batch_size = batch_size
         self.dim = dim
         self.repeat = repeat
-        self.noise_by_addition = noise[0]
-        self.noise_by_removal = noise[1]
         self.storage_flag = storage_flag
         self.storage = dict()
-        if proba_loc is None:
-            self.neg_sampler = None
-        else:
-            self.neg_sampler = np.load(proba_loc)
         self.verbose = verbose
         if isinstance(read_loc, list):
             all_files = read_loc
@@ -230,6 +215,10 @@ class AutoEncoderAugmentor(BaseGenerator):
         )
         self.noise_by_addition = noise[0]
         self.noise_by_removal = noise[1]
+        if proba_loc is None:
+            self.neg_sampler = None
+        else:
+            self.neg_sampler = np.load(proba_loc)
 
         if proba_loc is None:
             self.neg_sampler = None
