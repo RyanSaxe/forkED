@@ -1,5 +1,5 @@
 import numpy as np
-from generator import *
+from forkED.generator import *
 import sys
 import os
 import pickle
@@ -25,8 +25,8 @@ dataset = AutoEncoderAugmentor(
     file_cap_for_debug=1000,
 )
 
-from model import EncoderDecoder
-from trainer import Trainer
+from forkED.model import EncoderDecoder
+from forkED.trainer import Trainer
 import tensorflow as tf
 
 model = EncoderDecoder(

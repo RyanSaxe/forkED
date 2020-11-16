@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from base import BaseGenerator
+from forkED.base import BaseGenerator
 
 class AutoEncoderAugmentor(BaseGenerator):
     """
