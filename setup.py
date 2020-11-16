@@ -1,3 +1,5 @@
+#formatting for setup file taken from objax repository
+# as seen here: https://github.com/google/objax/blob/master/setup.py
 import re
 
 from pkg_resources import parse_requirements
